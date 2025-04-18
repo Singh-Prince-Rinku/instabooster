@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# InstaBooster 🚀
+
+InstaBooster is a full-stack web application that helps users boost their Instagram engagement through likes, followers, and reels views.
+
+## Features
+
+- 🔐 **Firebase Authentication** - Secure authentication with email and Google sign-in
+- 🪙 **Coin System** - Virtual currency for purchasing engagement boosts
+- 📈 **Engagement Boosts**:
+  - Like boosts for Instagram posts
+  - Follower boosts for Instagram profiles
+  - Views boosts for Instagram reels
+- 📊 **User Dashboard** - Track boost history and manage coins
+- 👑 **Admin Panel** - Search users, manage coins, view all boosts
+
+## Tech Stack
+
+- **Frontend**: Next.js, TypeScript, Tailwind CSS, Framer Motion
+- **Backend**: Next.js API Routes
+- **Authentication & Database**: Firebase (Auth, Firestore)
+- **State Management**: React Context API
+- **Styling**: Tailwind CSS
+- **Animations**: Framer Motion
+- **Icons**: React Icons
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 16+ and npm
+- Firebase account
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/instabooster.git
+   cd instabooster
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up your Firebase project:
+   - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
+   - Enable Authentication (Email/Password and Google)
+   - Create a Firestore database
+
+4. Set up environment variables:
+   - Copy `.env.local.example` to `.env.local`
+   - Fill in your Firebase configuration details
+
+5. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Deployment
+
+### Deploy to Vercel
+
+1. Push your code to GitHub
+2. Import your project to Vercel
+3. Set environment variables in the Vercel dashboard
+4. Deploy!
+
+## Project Structure
+
+```
+instabooster/
+├── public/               # Public assets
+├── src/
+│   ├── app/              # Next.js app router pages
+│   │   ├── admin/        # Admin panel
+│   │   ├── api/          # API routes
+│   │   ├── boost/        # Boost pages
+│   │   ├── dashboard/    # User dashboard
+│   │   ├── login/        # Authentication pages
+│   ├── components/       # React components
+│   │   ├── layout/       # Layout components
+│   │   ├── ui/           # UI components
+│   ├── context/          # React context
+│   ├── lib/              # Utility functions
+│   │   ├── api.ts        # API client
+│   │   ├── firebase.ts   # Firebase configuration
+│   │   ├── firestore.ts  # Firestore operations
+├── .env.local            # Environment variables
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Firebase Data Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Users Collection
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+users/{uid}
+├── uid: string
+├── email: string
+├── coins: number
+├── isAdmin: boolean
+├── createdAt: timestamp
+```
 
-## Learn More
+### Boosts Collection
 
-To learn more about Next.js, take a look at the following resources:
+```
+boosts/{id}
+├── userId: string
+├── type: 'likes' | 'followers' | 'reels'
+├── target: string (URL)
+├── amount: number
+├── status: 'pending' | 'completed' | 'failed'
+├── cost: number
+├── createdAt: timestamp
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project is licensed under the MIT License.
 
-## Deploy on Vercel
+## Acknowledgements
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js](https://nextjs.org/)
+- [Firebase](https://firebase.google.com/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Framer Motion](https://www.framer.com/motion/)
+- [React Icons](https://react-icons.github.io/react-icons/)
