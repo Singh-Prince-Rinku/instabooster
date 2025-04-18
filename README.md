@@ -66,11 +66,69 @@ InstaBooster is a full-stack web application that helps users boost their Instag
 3. Set environment variables in the Vercel dashboard
 4. Deploy!
 
+## Automation Features
+
+### Account Creation Automation
+
+InstaBooster includes powerful automation tools for creating and managing Instagram accounts:
+
+- 🤖 **Automated Account Creation** - Create multiple Instagram accounts with random usernames and passwords
+- 📧 **Temporary Email Integration** - Uses 1secmail API for account verification
+- 🌐 **Proxy Support** - Rotate through proxies to avoid IP bans
+- 🧩 **CAPTCHA Solving** - Handles Instagram CAPTCHAs during registration
+- 🎭 **User Agent Spoofing** - Mimics different devices and browsers
+
+### Automation Setup
+
+1. Install additional dependencies:
+   ```bash
+   npm install puppeteer-extra puppeteer-extra-plugin-stealth axios
+   ```
+
+2. Set up proxy configuration (optional but recommended):
+   - Create a JSON file with your proxy configurations
+   - Format: `[{"host": "example.com", "port": 8080, "username": "user", "password": "pass"}]`
+   - See `/scripts/sample-proxies.json` for an example
+
+3. Create accounts using the command-line script:
+   ```bash
+   npx ts-node scripts/create-accounts.ts --count 5 --proxies ./scripts/sample-proxies.json
+   ```
+
+### Command-Line Options
+
+The account creation script supports the following options:
+
+- `-c, --count <number>`: Number of accounts to create (default: 1)
+- `-o, --output <file>`: Output JSON file for created accounts (default: created_accounts.json)
+- `-p, --proxies <file>`: JSON file containing proxy configurations
+- `-h, --help`: Show help message
+
+### Integration with Boost Services
+
+The account creation feature integrates with the existing boost services:
+
+```typescript
+// Example: Create accounts and use them for a boost
+const service = new AutomationService();
+const accounts = await service.createAccounts(5);
+await service.processBoostWithAccounts('likes', 'https://instagram.com/p/example', 5, true);
+```
+
+### Important Notes
+
+- 🚨 **Terms of Service Warning**: Using automation tools may violate Instagram's Terms of Service
+- 🛡️ **Use at Your Own Risk**: Your accounts may be banned if detected as automated
+- 🔒 **Residential Proxies**: For best results, use residential proxies to avoid detection
+
 ## Project Structure
 
 ```
 instabooster/
 ├── public/               # Public assets
+├── scripts/              # Utility scripts
+│   ├── create-accounts.ts    # Account creation CLI
+│   ├── sample-proxies.json   # Example proxy configuration
 ├── src/
 │   ├── app/              # Next.js app router pages
 │   │   ├── admin/        # Admin panel
@@ -86,7 +144,11 @@ instabooster/
 │   │   ├── api.ts        # API client
 │   │   ├── firebase.ts   # Firebase configuration
 │   │   ├── firestore.ts  # Firestore operations
-├── .env.local            # Environment variables
+│   ├── automation/       # Automation tools
+│   │   ├── accountCreator.ts  # Instagram account creator
+│   │   ├── automationService.ts  # Main automation service
+│   │   ├── instagram.ts  # Instagram automation
+│   │   ├── examples/     # Example usage scripts
 ```
 
 ## Firebase Data Structure

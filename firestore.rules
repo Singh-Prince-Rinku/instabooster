@@ -57,6 +57,24 @@ service cloud.firestore {
                    get(/databases/$(database)/documents/collections/$(collectionId)).data.userId == request.auth.uid;
     }
     
+    // Boosts collection rules - IMPORTANT for API endpoints
+    match /boosts/{boostId} {
+      // Allow users to read their own boosts and admins to read all boosts
+      allow read: if request.auth != null && (
+                    resource.data.userId == request.auth.uid || 
+                    exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+                  );
+      
+      // Allow authenticated users to create boosts for themselves
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Allow admins to update any boost
+      allow update, delete: if request.auth != null && 
+                            exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+                            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
     // Allow users to read and write their own data in other collections
     match /{collection}/{document=**} {
       allow read: if request.auth != null;

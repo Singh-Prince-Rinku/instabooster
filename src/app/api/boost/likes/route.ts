@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createBoost, getUserData, updateUserCoins } from '@/lib/firestore';
+import { serverCreateBoost, serverGetUserData, serverUpdateUserCoins } from '@/lib/server-firebase';
 import { FirebaseError } from 'firebase/app';
 
 // Cost in coins per like
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     
     try {
       // Check if user has enough coins
-      const userData = await getUserData(userId);
+      const userData = await serverGetUserData(userId);
       
       if (!userData || userData.coins < totalCost) {
         return NextResponse.json(
@@ -48,10 +48,10 @@ export async function POST(request: NextRequest) {
       }
       
       // Create the boost record
-      const boost = await createBoost(userId, 'likes', postUrl, amount, totalCost);
+      const boost = await serverCreateBoost(userId, 'likes', postUrl, amount, totalCost);
       
       // Deduct the coins
-      await updateUserCoins(userId, -totalCost);
+      await serverUpdateUserCoins(userId, -totalCost);
       
       // Process the boost asynchronously by sending a request to our automation endpoint
       try {

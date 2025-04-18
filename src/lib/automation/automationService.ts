@@ -1,5 +1,9 @@
 import InstagramAutomation from './instagram';
+import InstagramAccountCreator, { AccountCreationResult } from './accountCreator';
 import { BoostType } from '@/lib/api';
+import ProxyManager, { Proxy } from './proxyManager';
+import AccountStorage, { InstagramAccount } from './accountStorage';
+import path from 'path';
 
 // Bot account credentials for different services
 interface BotAccount {
@@ -16,23 +20,20 @@ interface AutomationConfig {
   };
   commentTemplates: string[];
   defaultViewDuration: number;
+  proxies: Proxy[];
+  captchaApiKey?: string;
+  accountStorageSettings?: {
+    encryptionKey?: string;
+    storageDir?: string;
+  };
 }
 
 // Store bot accounts and configuration
 const defaultConfig: AutomationConfig = {
   botAccounts: {
-    likes: [
-      // Add your bot accounts here
-      // { username: 'like_bot1', password: 'password123' },
-    ],
-    follows: [
-      // Add your bot accounts here
-      // { username: 'follow_bot1', password: 'password123' },
-    ],
-    comments: [
-      // Add your bot accounts here
-      // { username: 'comment_bot1', password: 'password123' },
-    ],
+    likes: [],
+    follows: [],
+    comments: [],
   },
   commentTemplates: [
     'Amazing post! 🔥',
@@ -45,13 +46,28 @@ const defaultConfig: AutomationConfig = {
     'Well done! 👌',
     'This made my day! 😊',
     'Fantastic! 🌟',
+    // Added more varied comment templates
+    'This is exactly what I needed to see today! 💖',
+    'Your content always brightens my day! ✨',
+    'Such a creative post! 🎨',
+    'You are so talented! 👏👏👏',
+    'This deserves more attention! 👀',
+    'Mind blown! 🤯',
+    'Cannot stop looking at this! 👌',
+    'This is goals! 🙌',
+    'Obsessed with this! 😍',
+    'Top tier content! 💯',
   ],
   defaultViewDuration: 20000, // 20 seconds
+  proxies: [],
+  captchaApiKey: process.env.CAPTCHA_API_KEY || '',
 };
 
 // Class to handle all Instagram automation
 class AutomationService {
   private config: AutomationConfig;
+  private proxyManager: ProxyManager | null = null;
+  private accountStorage: AccountStorage;
   
   constructor(config: Partial<AutomationConfig> = {}) {
     this.config = {
@@ -62,6 +78,56 @@ class AutomationService {
         ...(config.botAccounts || {}),
       },
     };
+    
+    // Initialize proxy manager if proxies provided
+    if (this.config.proxies && this.config.proxies.length > 0) {
+      this.proxyManager = new ProxyManager(this.config.proxies);
+    }
+    
+    // Initialize account storage
+    this.accountStorage = new AccountStorage(this.config.accountStorageSettings);
+    this.initializeAccounts();
+  }
+  
+  // Initialize accounts from storage
+  private async initializeAccounts() {
+    const accounts = await this.accountStorage.loadAccounts();
+    
+    // Add accounts to the appropriate bot categories
+    accounts.forEach(account => {
+      const botAccount = { username: account.username, password: account.password };
+      
+      // Skip banned accounts
+      if (account.is_banned) return;
+      
+      if (account.category === 'likes' || !account.category) {
+        this.config.botAccounts.likes.push(botAccount);
+      }
+      
+      if (account.category === 'follows' || !account.category) {
+        this.config.botAccounts.follows.push(botAccount);
+      }
+      
+      if (account.category === 'comments' || !account.category) {
+        this.config.botAccounts.comments.push(botAccount);
+      }
+    });
+    
+    console.log(`Initialized with ${this.config.botAccounts.likes.length} like accounts, ${this.config.botAccounts.follows.length} follow accounts, ${this.config.botAccounts.comments.length} comment accounts`);
+  }
+  
+  // Get a random proxy
+  private getRandomProxy(): Proxy | null {
+    if (this.proxyManager) {
+      return this.proxyManager.getProxy();
+    }
+    
+    if (this.config.proxies && this.config.proxies.length > 0) {
+      const randomIndex = Math.floor(Math.random() * this.config.proxies.length);
+      return this.config.proxies[randomIndex];
+    }
+    
+    return null;
   }
   
   // Generate a random comment from the templates
@@ -403,6 +469,159 @@ class AutomationService {
         console.error(`Unsupported boost type: ${type}`);
         return false;
     }
+  }
+  
+  // Create multiple Instagram accounts
+  async createAccounts(amount: number): Promise<AccountCreationResult[]> {
+    console.log(`Creating ${amount} Instagram accounts`);
+    
+    const results: AccountCreationResult[] = [];
+    
+    for (let i = 0; i < amount; i++) {
+      console.log(`Creating account ${i + 1}/${amount}`);
+      
+      // Get a proxy to use
+      const proxy = this.getRandomProxy();
+      
+      // Create an account creator instance with CAPTCHA API key
+      const creator = new InstagramAccountCreator(this.config.captchaApiKey);
+      
+      if (proxy) {
+        creator.setProxy(proxy);
+      }
+      
+      try {
+        await creator.initialize();
+        const result = await creator.createAccount();
+        
+        if (result.success) {
+          // Add successful account to storage
+          this.addAccountToStorage(result);
+          
+          // Add to bot account lists
+          this.addBotAccount(result);
+          
+          // Mark proxy as successful if using proxy manager
+          if (proxy && this.proxyManager) {
+            this.proxyManager.markProxySuccess(proxy);
+          }
+        } else if (proxy && this.proxyManager) {
+          // Mark proxy as failed
+          this.proxyManager.markProxyFailed(proxy);
+        }
+        
+        results.push(result);
+      } catch (error) {
+        console.error('Error during account creation:', error);
+        
+        // Mark proxy as failed
+        if (proxy && this.proxyManager) {
+          this.proxyManager.markProxyFailed(proxy);
+        }
+        
+        results.push({
+          success: false,
+          username: '',
+          password: '',
+          email: '',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      } finally {
+        await creator.close();
+      }
+      
+      // Add delay between account creations to avoid detection
+      if (i < amount - 1) {
+        const delay = Math.floor(Math.random() * 60000) + 60000; // 1-2 minutes
+        console.log(`Waiting ${Math.round(delay / 1000)} seconds before creating next account...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    // Save proxy stats if we're using proxy manager
+    if (this.proxyManager) {
+      this.proxyManager.saveProxyStats();
+    }
+    
+    console.log(`Account creation complete. Success: ${results.filter(r => r.success).length}, Failed: ${results.filter(r => !r.success).length}`);
+    
+    return results;
+  }
+  
+  // Add a new account to secure storage
+  private addAccountToStorage(account: AccountCreationResult): void {
+    const instagramAccount: InstagramAccount = {
+      username: account.username,
+      password: account.password,
+      email: account.email,
+      created_at: new Date().toISOString(),
+      usage_count: 0,
+      is_banned: false
+    };
+    
+    this.accountStorage.addAccounts([instagramAccount]);
+  }
+  
+  // Add a new bot account to the configuration
+  private addBotAccount(account: AccountCreationResult) {
+    const { username, password } = account;
+    
+    // Add to all three categories for versatility
+    this.config.botAccounts.likes.push({ username, password });
+    this.config.botAccounts.follows.push({ username, password });
+    this.config.botAccounts.comments.push({ username, password });
+    
+    console.log(`Added ${username} to bot accounts pool`);
+  }
+  
+  // Process boost with account creation option
+  async processBoostWithAccounts(type: BoostType, target: string, amount: number, createAccounts: boolean = false): Promise<boolean> {
+    if (createAccounts) {
+      // First create accounts if needed
+      const accountResults = await this.createAccounts(amount);
+      const successfulAccounts = accountResults.filter(account => account.success);
+      
+      if (successfulAccounts.length === 0) {
+        console.error('Failed to create any accounts, cannot proceed with boost');
+        return false;
+      }
+      
+      // Use the newly created accounts for the boost
+      console.log(`Using ${successfulAccounts.length} newly created accounts for the boost`);
+    }
+    
+    // Proceed with regular boost process
+    return this.processBoost(type, target, amount);
+  }
+  
+  // Export accounts to JSON
+  async exportAccounts(filePath: string): Promise<boolean> {
+    return this.accountStorage.exportToJson(filePath);
+  }
+  
+  // Import accounts from JSON
+  async importAccounts(filePath: string): Promise<boolean> {
+    const success = this.accountStorage.importFromJson(filePath);
+    
+    // Re-initialize accounts if import was successful
+    if (success) {
+      await this.initializeAccounts();
+    }
+    
+    return success;
+  }
+  
+  // Get account statistics
+  getAccountStats(): { total: number, available: number, likes: number, follows: number, comments: number } {
+    return {
+      total: this.config.botAccounts.likes.length + 
+             this.config.botAccounts.follows.length + 
+             this.config.botAccounts.comments.length,
+      available: (this.accountStorage.getAvailableAccounts() || []).length,
+      likes: this.config.botAccounts.likes.length,
+      follows: this.config.botAccounts.follows.length,
+      comments: this.config.botAccounts.comments.length
+    };
   }
 }
 

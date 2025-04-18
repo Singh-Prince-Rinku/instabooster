@@ -6,12 +6,19 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "create-accounts": "node scripts/create-accounts.js",
+    "create-accounts-prod": "ts-node --project ./scripts/tsconfig.json --transpile-only --files scripts/create-accounts-production.ts"
   },
   "dependencies": {
+    "@types/axios": "^0.9.36",
+    "2captcha": "^3.0.5-2",
+    "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^16.5.0",
     "firebase": "^11.6.0",
+    "firebase-admin": "^13.2.0",
     "framer-motion": "^12.7.4",
     "next": "15.3.1",
     "puppeteer": "^24.6.1",
@@ -32,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
